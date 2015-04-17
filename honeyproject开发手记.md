@@ -1,5 +1,7 @@
 honey开发手记
 ==========
+[littlezz](https://github.com/littlezz)
+
 之前没有记录, 4月中旬才想到要记录的。  
 
 ### 简介
@@ -91,6 +93,7 @@ Klass.objects.filter(username='').count() > 0
 ---------
 今天着手编写另一个模块， 而且据说原先计划这部分就是大头= =   
 
+###delete删除
 django的instance删除之后， 指向他的ForeignKey的记录也会被删除。  
 其他的OneToOneField 和 ManyToManyField不会又影响。  
 如果这不是你想要的， 可以添加`on_delete`参数。  
@@ -122,4 +125,80 @@ ref:
 - <https://docs.djangoproject.com/en/1.8/ref/models/fields/#django.db.models.ForeignKey.on_delete>  
 
 
+
+###关于数据库设计
+之前听说数据又冷热之分， 一直不是很理解， 今天终于知道了， django查询数据库的时候会把所有的字段都提取出来， 所以如果总是提取不是经常需要的数据就会很慢。  
+另外， 热的数据可以用缓存存起来， 方便及时的修改。  
+
+django提供了`defer`和`only`这些方法来决定获取数据的时候不提取那些数据。 
+
+现在假设我们是这样设计数据库的
+
+```python
+class Blog(models.Model):
+    title = models.CharField(max_length=50)
+    content = models.TextField()
+    view_times = models.IntField() 
+```  
+
+然后我有一个查询， 提取所有的blog的title
+
+```python
+for b in Blog.objects.all():
+    print(b.title)
+```
+
+我只需要title。 但是每次django从数据库中提取出一个blog的时候， 默认提取所有的字段， 也就是content这个字段也会读取， 假设content里面存了10k个字符， 那这个简单的查询将会变成**无比的慢**。  
+
+####解决方法
+一种是用django提供的方法， 但是如果你有很多不必每次都获取的字段， 那数据库应该设计成， 不常用的数据单独在一个table， 然后用OneToOneField连接。  
+
+```python
+class Blog(models.Model):
+    title = models.CharField(max_length=50)
+    view_times = models.IntField()
+    
+class Article(models.Model):
+    blog = models.OneToOneField(Blog)
+    content = models.TextField()
+    ...
+```
+
+另外，如果有字数限制， 应该使用`CharField`， `TextField`的`max_length`只是对渲染出来的表单又限制， 对于实际存入的数据不做检查。 而且`CharField`的速度要比`TextField`快。 
+
+
+###关于restframework
+之前一直在想怎么样让一个model里面自己的字段用一个字典包裹， 今天终于想到解决办法了。
+
+```python
+class Blog(models.Model):
+    title = models.CharField(max_length=50)
+    content = models.TextField()
+    view_times = models.IntField() 
+    
+    def nest(self):
+        return {'title': self.title,
+                'view_times': self.view_times}
+
+```
+在serializer中
+
+```python
+
+class InfoSerializer(serializer.Serializer):
+    title = serializer.CharField()
+    view_times = serializer.IntField() 
+
+
+class BlogSerializer(serializer.ModelSerializer):
+    info = InfoSerializer(source='nest')
+    
+    class Meta:
+        fields = ('content', 'info')
+    
+```
+但是这个前提是要在model里面写好方法。还是不方便。  
+有空再想想
+
+2015年04月17日20:43:40
 
