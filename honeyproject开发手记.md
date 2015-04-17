@@ -32,6 +32,7 @@ honeyproject 使用django框架， 主要基于djangorestframework。
 redis和celery当时主要用于热门的周期计算， 以及异步的推送。  
 
 
+2月份主要是和外包配合， 所以有点不爽吧。
 之前的记录到此为止
 
 ---
@@ -63,7 +64,8 @@ CLEAN_USERNAME_REGEX = re.compile(r'[^\w.@+\-_]+', re.UNICODE)
 bug 提交在  
 <https://github.com/omab/python-social-auth/issues/594>
 
-另外就是过滤之后`final_username` 可能为空， 这个没有判断。 
+另外就是过滤之后`final_username` 可能为空， 这个没有判断.  
+
 <https://github.com/omab/python-social-auth/pull/595>
  
 额外学习到的东西就是  
@@ -74,14 +76,50 @@ Klass.objects.filter(username='').count() > 0
 这个语句是一定False的。。。
 
 ###感想
-正则不懂是不是特意这样的， 不得而知， 但是大家都没有发现， 想必是国外那些有名的公司在用户名的限制上比较严格吧。  
+这么久大家都没有发现， 想必是国外那些有名的公司在用户名的限制上比较严格吧。  
 
-比如qq这边， psa用qq的nickname作为username的， 然后有些人的用户名直接就是中二得不行。
+国内的。。。  
+比如qq这边， psa用qq的nickname作为username来保存的， 然后有些人的用户名直接就是中二得不行。
 
 比如，`◥▇▇▇╋︻`
 
 我日你妈。  
 
 2015年04月16日20:56:53
+
+4-17
+---------
+今天着手编写另一个模块， 而且据说原先计划这部分就是大头= =   
+
+django的instance删除之后， 指向他的ForeignKey的记录也会被删除。  
+其他的OneToOneField 和 ManyToManyField不会又影响。  
+如果这不是你想要的， 可以添加`on_delete`参数。  
+
+比如
+
+```python
+class Blog(models.Model):
+    pass
+    
+class Entry(models.Model):
+    blog = models.ForeignKey(Blog)
+    
+```
+这样， 当blog实例被删除的时候， 指向他的entry都会被删除。
+
+如果不想这样， 
+
+```
+class Entry(models.Model):
+    blog = models.ForeignKey(Blog, blank=True, null=True, on_delete=models.SET_NULL)
+
+```
+将相应的entry的外键设置为null。
+
+ref:  
+
+- <https://docs.djangoproject.com/en/1.8/topics/db/queries/#deleting-objects>  
+- <https://docs.djangoproject.com/en/1.8/ref/models/fields/#django.db.models.ForeignKey.on_delete>  
+
 
 
