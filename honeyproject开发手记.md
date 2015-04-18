@@ -215,3 +215,64 @@ class BlogSerializer(serializer.ModelSerializer):
 
 另外就是对于排序这些， 如果使用了列表，里面存放了model 的实例， 可能真的要考虑性能了， 主要在数据的传递上面。对于长度比较大的列表，返回就不能直接返回了， 应该使用迭代器。  
 
+###数据库查询优化
+提供了`select_related`, `prefetch_related`,`Prefetch`。    
+我记得之前火狐的一个开发者说用这个速度提升了2000倍。 当然他那个比较浮夸了， 但是总的来说， 速度提升，sql查询次数下降这些都是很明显的。  
+
+####`select_related`  
+主要提前载入一对一的键和外键。和主查询同时进行。   
+
+####`prefetch_related`
+和`select_related`的目的是一样的， 但是实现方法不一样。 支持多对多和多对一的关系。 原理是另外进行一次sql查询， 独立于主查询， 在主查询生效之后发生。然后再python层面进行合并。  
+他的宗旨和queryset不一样， 他会一次读取所有数据， 然后存入内存中， queryset则是尽量减少一次性载入。  
+之后， 主查询里面要查询相关的关系的时候， 就会直接从存缓中寻找， 不再接触数据库。
+
+
+这个优化对性能的提升是非常明显的， 说说副作用。  
+
+很明显， 一次性读取所有有关的数据会加大内存的开销， 所以使用的时候要小心， 需要想清楚， 提取的这些数据是不是被大量共享的。
+而且他不能对不同的queryset优化  
+
+文档给出了样例
+
+```
+>>> pizzas = Pizza.objects.prefetch_related('toppings')
+>>> [list(pizza.toppings.filter(spicy=True)) for pizza in pizzas]
+```
+
+只对`pizza.toppings.all()`有效， `pizza.toppings.filter`会被认为是另一个query。
+
+另外不能和`iterator()`一起用， 因为他们是相反的优化方式。
+
+####`Prefetch`
+django1.7之后引入的， 大幅强化`prefetch_related`。  
+
+由于`prefetch_related`是另一个sql查询，所以可选的`query`参数是对这个sql查询进行自定义。 可以使用filter之类的操作。  
+
+另外因为是在python层面进行合并的， 所以`to_attr`自定义了存入的属性名字， 不然就是默认覆盖相关的属性名字。  
+
+ref:  
+[queryset ref](https://docs.djangoproject.com/en/1.8/ref/models/querysets/)  
+[Prefetch](https://docs.djangoproject.com/en/1.8/ref/models/querysets/#prefetch-objects)
+
+不想变成姿势普及贴， 只写了自己的思考和一些细节， 具体看查文档。
+
+
+###关于redis  
+redis 值键对存储结构， 虽然在内存中读写， 但是不代表就应该完全依赖他， 数据库的读取是有相应的优势的， redis的优势应该在于他的储存方式和对存入的数据结构没有要求。  
+而django的orm强化了数据库的操作， 对于复杂的查询有着天然的优势。
+对于大量的数据读取， 我觉得还是要回到数据库读取。  
+
+当然还是要看情况。  
+最后还是拼经验， 还有具体的性能测试。  
+
+django文档上关于优化的第一条， 性能测试先行。  
+
+总结起来就是没做测试之前乖乖闭嘴。  
+
+**No do no bb**
+
+___
+Have fun!  
+
+2015年04月18日20:36:19
