@@ -276,3 +276,49 @@ ___
 Have fun!  
 
 2015年04月18日20:36:19
+
+4-20
+--------
+依然着手于mysql的优化， django在对 mysql操作的时候产生了线程安全的问题， 当然问题不大， 主要是偶尔出现重复创建失败的问题， 是两个线程同时创建同一个记录失败了。 
+
+周日google了半天无果， 线程问题实在是一个大坑， 比如`get_or_create`实际并不是所谓的线程安全的。 这种问题都是细思极恐， 但是实际中也不会照成实际的错误。 
+
+可是我他妈就是不服啊。  
+后来直接开始看关于Mysql的书了。  
+[MySQL 性能调优与架构设计.pdf](https://www.dropbox.com/s/z731rggsdyhipnd/MySQL%20%E6%80%A7%E8%83%BD%E8%B0%83%E4%BC%98%E4%B8%8E%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1.pdf?dl=0)
+
+###数据库优化
+今天取消使用`prefech_related`， 对于不是在query中大量共享的数据， 全部拖取出来， 要是是上万级的，这个语句反而又拖慢性能的可能。  
+
+另外， 对于Inondb， 使用`count`代价是巨大的。
+因为面向对象的思想， 我们和可能在设计的时候是这样的。  
+
+```python
+class Blog:
+    ...
+    def comment_count(self):
+        return self.comments.count()
+```
+这种方法如果每一个blog在列出的时候就会都计算一次， 如果要列出10个blog， 将会产生10次使用`COUNT`的操作。  
+
+一种方法是加一个字段，然后周期性的更新这个字段。  但是这个会牺牲数据的及时性， 在目前用户量小的时候，不太适合。  
+
+我是用annotate语句将count查询合并到一次查询， 消灭了这10次额外的查询。  
+
+性能提升了30%吧。
+
+另外在使用annotate语句的时候， 使用聚合`Count`计算总数的时候出错了， 一个参数的时候没有问题， 两个就跪了。  就是计算出来的值是错的， 而且两个参数内容是一样的。  
+
+  
+解决的办法是在Count里面指定参数`distinct=True` 
+
+比如
+```
+Blog.objects.annotate(Count('comments', distinct=True))
+```
+
+别问我为什么这样就可以了， 我也不懂， 有一种东西叫做**信仰**  
+
+关于`Count`的参数说明:<https://docs.djangoproject.com/en/1.8/ref/models/querysets/#id7>  
+
+2015年04月20日19:52:17
