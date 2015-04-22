@@ -322,3 +322,42 @@ Blog.objects.annotate(Count('comments', distinct=True))
 关于`Count`的参数说明:<https://docs.djangoproject.com/en/1.8/ref/models/querysets/#id7>  
 
 2015年04月20日19:52:17
+
+4-22
+------
+###浮点数取特定位数
+
+####方法一
+```python
+f = 1.234
+round(f, 2)
+
+# output 1.23
+```
+####方法二
+利用format, 然后再转换为`float`
+
+```
+float(format(f, '.2f'))
+```
+对于Python来说， 应该使用format来定义格式， 而不是使用c语言风格的`'.2f' % f`.  
+
+[关于`format`的微语法] (https://docs.python.org/3.4/library/string.html#formatspec)
+
+另外以上两种方法都是四舍五入的。
+
+####方法三
+如果不想四舍五入，自己写一个函数截取。  
+
+```python
+def float_round(f, digits=2):
+    integer, decimal = str(f).split('.')
+    return float('.'.join((integer, decimal[:digits])))
+```
+
+根据PEP8， 字符串合并的时候尽量不要使用`+`， `s += s1`只在`CPython`上获得优化，但是在其他的python的实现上会性能下降。 所以推荐使用`join`方法来合并字符串， 特别是大量合并操作的时候， `join`方法保证了所有的实现上合并操作都是线性时间。  
+
+ref: <https://www.python.org/dev/peps/pep-0008/#programming-recommendations>
+
+
+2015年04月22日20:49:21
