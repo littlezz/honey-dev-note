@@ -361,3 +361,24 @@ ref: <https://www.python.org/dev/peps/pep-0008/#programming-recommendations>
 
 
 2015年04月22日20:49:21
+
+4-24
+-------
+原来django的文档已经提及`get_or_create`是有race condition的问题的， 另外， 对于MySQL数据库， isolation level 应该设置为`READ COMMITTED`, 而不是默认的`REPEATABLE READ`, 不过不用担心， django默认是设置为`READ COMMITTED`， 真是好险。。。 
+
+ref: <https://docs.djangoproject.com/en/1.8/ref/models/querysets/#django.db.models.query.QuerySet.get_or_create>
+
+###使用django使用额外的redis的接口
+自带的cache框架很方便, 但是如果想要使用`redis-py`, 而又想使用django的配置的话，可以使用
+
+```
+>>> from django_redis import get_redis_connection
+>>> con = get_redis_connection("default")
+>>> con
+<redis.client.StrictRedis object at 0x2dc4510>
+```
+
+ref: <http://niwibe.github.io/django-redis/#_raw_client_access>
+
+需要注意的时在py3里面， 比如列表， 里面存放的项都是bytes类型。  
+
