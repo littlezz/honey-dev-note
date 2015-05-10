@@ -5,6 +5,7 @@ honey 开发手记
 主要关于django， python3， restframework, 数据库优化， restful api设计。
 
 
+本人已于5月8日申请离职， 离开公司。
 
 - [4月份手记（最初）](https://github.com/littlezz/honey-dev-note/blob/master/2015-04.md)  
 - [5月份手记](https://github.com/littlezz/honey-dev-note/blob/master/2015-05.md)
